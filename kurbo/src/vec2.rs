@@ -21,40 +21,53 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Vec2 {
+pub struct Vec2<T = f64> {
     /// The x-coordinate.
-    pub x: f64,
+    pub x: T,
     /// The y-coordinate.
-    pub y: f64,
+    pub y: T,
+}
+
+impl<T> Vec2<T> {
+    /// Create a new vector.
+    #[inline(always)]
+    pub const fn new(x: T, y: T) -> Vec2<T> {
+        Vec2 { x, y }
+    }
+
+    /// Get a mutable reference to the member matching the given axis.
+    #[inline]
+    pub const fn get_coord_mut(&mut self, axis: Axis) -> &mut T {
+        match axis {
+            Axis::Horizontal => &mut self.x,
+            Axis::Vertical => &mut self.y,
+        }
+    }
+}
+
+impl<T: Copy> Vec2<T> {
+    /// Convert this vector into a [`Size`].
+    #[inline(always)]
+    pub const fn to_size(self) -> Size<T> {
+        Size::new(self.x, self.y)
+    }
+
+    /// Convert this vector into a [`Point`].
+    #[inline(always)]
+    pub const fn to_point(self) -> Point<T> {
+        Point::new(self.x, self.y)
+    }
+
+    /// Create a vector with the same value for `x` and `y`.
+    #[inline(always)]
+    pub const fn splat(v: T) -> Self {
+        Vec2 { x: v, y: v }
+    }
 }
 
 impl Vec2 {
     /// The vector (0, 0).
     pub const ZERO: Vec2 = Vec2::new(0., 0.);
-
-    /// Create a new vector.
-    #[inline(always)]
-    pub const fn new(x: f64, y: f64) -> Vec2 {
-        Vec2 { x, y }
-    }
-
-    /// Convert this vector into a [`Point`].
-    #[inline(always)]
-    pub const fn to_point(self) -> Point {
-        Point::new(self.x, self.y)
-    }
-
-    /// Convert this vector into a [`Size`].
-    #[inline(always)]
-    pub const fn to_size(self) -> Size {
-        Size::new(self.x, self.y)
-    }
-
-    /// Create a vector with the same value for `x` and `y`.
-    #[inline(always)]
-    pub const fn splat(v: f64) -> Self {
-        Vec2 { x: v, y: v }
-    }
 
     /// Dot product of two vectors.
     #[inline]
@@ -354,15 +367,6 @@ impl Vec2 {
         }
     }
 
-    /// Get a mutable reference to the member matching the given axis.
-    #[inline]
-    pub const fn get_coord_mut(&mut self, axis: Axis) -> &mut f64 {
-        match axis {
-            Axis::Horizontal => &mut self.x,
-            Axis::Vertical => &mut self.y,
-        }
-    }
-
     /// Set the member matching the given axis to the given value.
     #[inline]
     pub const fn set_coord(&mut self, axis: Axis, value: f64) {
@@ -373,25 +377,25 @@ impl Vec2 {
     }
 }
 
-impl From<(f64, f64)> for Vec2 {
+impl<T> From<(T, T)> for Vec2<T> {
     #[inline(always)]
-    fn from(v: (f64, f64)) -> Vec2 {
+    fn from(v: (T, T)) -> Vec2<T> {
         Vec2 { x: v.0, y: v.1 }
     }
 }
 
-impl From<Vec2> for (f64, f64) {
+impl<T> From<Vec2<T>> for (T, T) {
     #[inline(always)]
-    fn from(v: Vec2) -> (f64, f64) {
+    fn from(v: Vec2<T>) -> (T, T) {
         (v.x, v.y)
     }
 }
 
-impl Add for Vec2 {
-    type Output = Vec2;
+impl<T: Add<Output = T>> Add for Vec2<T> {
+    type Output = Vec2<T>;
 
     #[inline]
-    fn add(self, other: Vec2) -> Vec2 {
+    fn add(self, other: Vec2<T>) -> Vec2<T> {
         Vec2 {
             x: self.x + other.x,
             y: self.y + other.y,
@@ -399,13 +403,11 @@ impl Add for Vec2 {
     }
 }
 
-impl AddAssign for Vec2 {
+impl<T: AddAssign> AddAssign for Vec2<T> {
     #[inline]
-    fn add_assign(&mut self, other: Vec2) {
-        *self = Vec2 {
-            x: self.x + other.x,
-            y: self.y + other.y,
-        }
+    fn add_assign(&mut self, other: Vec2<T>) {
+        self.x += other.x;
+        self.y += other.y;
     }
 }
 
@@ -415,11 +417,11 @@ impl Sum for Vec2 {
     }
 }
 
-impl Sub for Vec2 {
-    type Output = Vec2;
+impl<T: Sub<Output = T>> Sub for Vec2<T> {
+    type Output = Vec2<T>;
 
     #[inline]
-    fn sub(self, other: Vec2) -> Vec2 {
+    fn sub(self, other: Vec2<T>) -> Vec2<T> {
         Vec2 {
             x: self.x - other.x,
             y: self.y - other.y,
@@ -427,21 +429,19 @@ impl Sub for Vec2 {
     }
 }
 
-impl SubAssign for Vec2 {
+impl<T: SubAssign> SubAssign for Vec2<T> {
     #[inline]
-    fn sub_assign(&mut self, other: Vec2) {
-        *self = Vec2 {
-            x: self.x - other.x,
-            y: self.y - other.y,
-        }
+    fn sub_assign(&mut self, other: Vec2<T>) {
+        self.x -= other.x;
+        self.y -= other.y;
     }
 }
 
-impl Mul<f64> for Vec2 {
-    type Output = Vec2;
+impl<T: Mul<Output = T> + Copy> Mul<T> for Vec2<T> {
+    type Output = Vec2<T>;
 
     #[inline]
-    fn mul(self, other: f64) -> Vec2 {
+    fn mul(self, other: T) -> Vec2<T> {
         Vec2 {
             x: self.x * other,
             y: self.y * other,
@@ -449,13 +449,11 @@ impl Mul<f64> for Vec2 {
     }
 }
 
-impl MulAssign<f64> for Vec2 {
+impl<T: MulAssign + Copy> MulAssign<T> for Vec2<T> {
     #[inline]
-    fn mul_assign(&mut self, other: f64) {
-        *self = Vec2 {
-            x: self.x * other,
-            y: self.y * other,
-        };
+    fn mul_assign(&mut self, other: T) {
+        self.x *= other;
+        self.y *= other;
     }
 }
 
@@ -488,11 +486,11 @@ impl DivAssign<f64> for Vec2 {
     }
 }
 
-impl Neg for Vec2 {
-    type Output = Vec2;
+impl<T: Neg<Output = T>> Neg for Vec2<T> {
+    type Output = Vec2<T>;
 
     #[inline]
-    fn neg(self) -> Vec2 {
+    fn neg(self) -> Vec2<T> {
         Vec2 {
             x: -self.x,
             y: -self.y,
@@ -500,7 +498,7 @@ impl Neg for Vec2 {
     }
 }
 
-impl fmt::Display for Vec2 {
+impl<T: fmt::Display> fmt::Display for Vec2<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "𝐯=(")?;
         fmt::Display::fmt(&self.x, formatter)?;
@@ -512,17 +510,17 @@ impl fmt::Display for Vec2 {
 
 // Conversions to and from mint
 #[cfg(feature = "mint")]
-impl From<Vec2> for mint::Vector2<f64> {
+impl<T> From<Vec2<T>> for mint::Vector2<T> {
     #[inline(always)]
-    fn from(p: Vec2) -> mint::Vector2<f64> {
+    fn from(p: Vec2<T>) -> mint::Vector2<T> {
         mint::Vector2 { x: p.x, y: p.y }
     }
 }
 
 #[cfg(feature = "mint")]
-impl From<mint::Vector2<f64>> for Vec2 {
+impl<T> From<mint::Vector2<T>> for Vec2<T> {
     #[inline(always)]
-    fn from(p: mint::Vector2<f64>) -> Vec2 {
+    fn from(p: mint::Vector2<T>) -> Vec2<T> {
         Vec2 { x: p.x, y: p.y }
     }
 }

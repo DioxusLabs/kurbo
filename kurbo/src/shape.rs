@@ -15,6 +15,11 @@ use crate::{BezPath, Circle, Line, PathEl, Point, Rect, RoundedRect, Segments, s
 /// [`bounding_box`]: Shape::bounding_box
 /// [`winding`]: Shape::winding
 pub trait Shape {
+    /// The scalar type of the coordinates this shape is defined over.
+    ///
+    /// Currently every implementation in this crate uses `f64`.
+    type Scalar;
+
     /// The iterator returned by the [`path_elements`] method.
     ///
     /// [`path_elements`]: Shape::path_elements
@@ -173,6 +178,8 @@ pub trait Shape {
 
 /// Blanket implementation so `impl Shape` will accept owned or reference.
 impl<'a, T: Shape> Shape for &'a T {
+    type Scalar = T::Scalar;
+
     type PathElementsIter<'iter>
         = T::PathElementsIter<'iter>
     where

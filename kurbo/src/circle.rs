@@ -18,23 +18,25 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Circle {
+pub struct Circle<T = f64> {
     /// The center.
-    pub center: Point,
+    pub center: Point<T>,
     /// The radius.
-    pub radius: f64,
+    pub radius: T,
 }
 
-impl Circle {
+impl<T> Circle<T> {
     /// A new circle from center and radius.
     #[inline(always)]
-    pub fn new(center: impl Into<Point>, radius: f64) -> Circle {
+    pub fn new(center: impl Into<Point<T>>, radius: T) -> Circle<T> {
         Circle {
             center: center.into(),
             radius,
         }
     }
+}
 
+impl Circle {
     /// Create a [`CircleSegment`] by cutting out parts of this circle.
     #[inline(always)]
     pub fn segment(self, inner_radius: f64, start_angle: f64, sweep_angle: f64) -> CircleSegment {
@@ -64,11 +66,11 @@ impl Circle {
     }
 }
 
-impl Add<Vec2> for Circle {
-    type Output = Circle;
+impl<T: Add<Output = T>> Add<Vec2<T>> for Circle<T> {
+    type Output = Circle<T>;
 
     #[inline]
-    fn add(self, v: Vec2) -> Circle {
+    fn add(self, v: Vec2<T>) -> Circle<T> {
         Circle {
             center: self.center + v,
             radius: self.radius,
@@ -76,11 +78,11 @@ impl Add<Vec2> for Circle {
     }
 }
 
-impl Sub<Vec2> for Circle {
-    type Output = Circle;
+impl<T: Sub<Output = T>> Sub<Vec2<T>> for Circle<T> {
+    type Output = Circle<T>;
 
     #[inline]
-    fn sub(self, v: Vec2) -> Circle {
+    fn sub(self, v: Vec2<T>) -> Circle<T> {
         Circle {
             center: self.center - v,
             radius: self.radius,
@@ -105,6 +107,8 @@ pub struct CirclePathIter {
 }
 
 impl Shape for Circle {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = CirclePathIter;
 
     fn path_elements(&self, tolerance: f64) -> CirclePathIter {
@@ -199,28 +203,28 @@ impl Iterator for CirclePathIter {
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CircleSegment {
+pub struct CircleSegment<T = f64> {
     /// The center.
-    pub center: Point,
+    pub center: Point<T>,
     /// The outer radius.
-    pub outer_radius: f64,
+    pub outer_radius: T,
     /// The inner radius.
-    pub inner_radius: f64,
+    pub inner_radius: T,
     /// The angle to start drawing the segment (in radians).
-    pub start_angle: f64,
+    pub start_angle: T,
     /// The arc length of the segment (in radians).
-    pub sweep_angle: f64,
+    pub sweep_angle: T,
 }
 
-impl CircleSegment {
+impl<T> CircleSegment<T> {
     /// Create a `CircleSegment` out of its constituent parts.
     #[inline(always)]
     pub fn new(
-        center: impl Into<Point>,
-        outer_radius: f64,
-        inner_radius: f64,
-        start_angle: f64,
-        sweep_angle: f64,
+        center: impl Into<Point<T>>,
+        outer_radius: T,
+        inner_radius: T,
+        start_angle: T,
+        sweep_angle: T,
     ) -> Self {
         CircleSegment {
             center: center.into(),
@@ -230,7 +234,9 @@ impl CircleSegment {
             sweep_angle,
         }
     }
+}
 
+impl CircleSegment {
     /// Return an arc representing the outer radius.
     #[must_use]
     #[inline(always)]
@@ -288,11 +294,11 @@ impl CircleSegment {
     }
 }
 
-impl Add<Vec2> for CircleSegment {
-    type Output = CircleSegment;
+impl<T: Add<Output = T>> Add<Vec2<T>> for CircleSegment<T> {
+    type Output = CircleSegment<T>;
 
     #[inline]
-    fn add(self, v: Vec2) -> Self {
+    fn add(self, v: Vec2<T>) -> Self {
         Self {
             center: self.center + v,
             ..self
@@ -300,11 +306,11 @@ impl Add<Vec2> for CircleSegment {
     }
 }
 
-impl Sub<Vec2> for CircleSegment {
-    type Output = CircleSegment;
+impl<T: Sub<Output = T>> Sub<Vec2<T>> for CircleSegment<T> {
+    type Output = CircleSegment<T>;
 
     #[inline]
-    fn sub(self, v: Vec2) -> Self {
+    fn sub(self, v: Vec2<T>) -> Self {
         Self {
             center: self.center - v,
             ..self
@@ -321,6 +327,8 @@ type CircleSegmentPathIter = iter::Chain<
 >;
 
 impl Shape for CircleSegment {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = CircleSegmentPathIter;
 
     fn path_elements(&self, tolerance: f64) -> CircleSegmentPathIter {

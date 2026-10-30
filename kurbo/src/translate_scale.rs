@@ -41,20 +41,22 @@ use crate::{
 #[derive(Clone, Copy, Debug)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TranslateScale {
+pub struct TranslateScale<T = f64> {
     /// The translation component of this transformation
-    pub translation: Vec2,
+    pub translation: Vec2<T>,
     /// The scale component of this transformation
-    pub scale: f64,
+    pub scale: T,
+}
+
+impl<T> TranslateScale<T> {
+    /// Create a new transformation from translation and scale.
+    #[inline(always)]
+    pub const fn new(translation: Vec2<T>, scale: T) -> TranslateScale<T> {
+        TranslateScale { translation, scale }
+    }
 }
 
 impl TranslateScale {
-    /// Create a new transformation from translation and scale.
-    #[inline(always)]
-    pub const fn new(translation: Vec2, scale: f64) -> TranslateScale {
-        TranslateScale { translation, scale }
-    }
-
     /// Create a new transformation with scale only.
     #[inline(always)]
     pub const fn scale(s: f64) -> TranslateScale {
@@ -181,11 +183,11 @@ impl Mul<TranslateScale> for f64 {
     }
 }
 
-impl Add<Vec2> for TranslateScale {
-    type Output = TranslateScale;
+impl<T: Add<Output = T>> Add<Vec2<T>> for TranslateScale<T> {
+    type Output = TranslateScale<T>;
 
     #[inline]
-    fn add(self, other: Vec2) -> TranslateScale {
+    fn add(self, other: Vec2<T>) -> TranslateScale<T> {
         TranslateScale {
             translation: self.translation + other,
             scale: self.scale,
@@ -193,27 +195,27 @@ impl Add<Vec2> for TranslateScale {
     }
 }
 
-impl Add<TranslateScale> for Vec2 {
-    type Output = TranslateScale;
+impl<T: Add<Output = T>> Add<TranslateScale<T>> for Vec2<T> {
+    type Output = TranslateScale<T>;
 
     #[inline]
-    fn add(self, other: TranslateScale) -> TranslateScale {
+    fn add(self, other: TranslateScale<T>) -> TranslateScale<T> {
         other + self
     }
 }
 
-impl AddAssign<Vec2> for TranslateScale {
+impl<T: AddAssign> AddAssign<Vec2<T>> for TranslateScale<T> {
     #[inline]
-    fn add_assign(&mut self, other: Vec2) {
-        *self = self.add(other);
+    fn add_assign(&mut self, other: Vec2<T>) {
+        self.translation += other;
     }
 }
 
-impl Sub<Vec2> for TranslateScale {
-    type Output = TranslateScale;
+impl<T: Sub<Output = T>> Sub<Vec2<T>> for TranslateScale<T> {
+    type Output = TranslateScale<T>;
 
     #[inline]
-    fn sub(self, other: Vec2) -> TranslateScale {
+    fn sub(self, other: Vec2<T>) -> TranslateScale<T> {
         TranslateScale {
             translation: self.translation - other,
             scale: self.scale,
@@ -221,10 +223,10 @@ impl Sub<Vec2> for TranslateScale {
     }
 }
 
-impl SubAssign<Vec2> for TranslateScale {
+impl<T: SubAssign> SubAssign<Vec2<T>> for TranslateScale<T> {
     #[inline]
-    fn sub_assign(&mut self, other: Vec2) {
-        *self = self.sub(other);
+    fn sub_assign(&mut self, other: Vec2<T>) {
+        self.translation -= other;
     }
 }
 

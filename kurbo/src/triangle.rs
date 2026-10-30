@@ -21,13 +21,39 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Triangle {
+pub struct Triangle<T = f64> {
     /// vertex a.
-    pub a: Point,
+    pub a: Point<T>,
     /// vertex b.
-    pub b: Point,
+    pub b: Point<T>,
     /// vertex c.
-    pub c: Point,
+    pub c: Point<T>,
+}
+
+impl<T> Triangle<T> {
+    /// A new [`Triangle`] from three vertices ([`Point`]s).
+    #[inline(always)]
+    pub fn new(a: impl Into<Point<T>>, b: impl Into<Point<T>>, c: impl Into<Point<T>>) -> Self {
+        Self {
+            a: a.into(),
+            b: b.into(),
+            c: c.into(),
+        }
+    }
+}
+
+impl<T: Copy> Triangle<T> {
+    /// A new [`Triangle`] from three float vertex coordinates.
+    ///
+    /// Works as a constant [`Triangle::new`].
+    #[inline(always)]
+    pub const fn from_coords(a: (T, T), b: (T, T), c: (T, T)) -> Self {
+        Self {
+            a: Point::new(a.0, a.1),
+            b: Point::new(b.0, b.1),
+            c: Point::new(c.0, c.1),
+        }
+    }
 }
 
 impl Triangle {
@@ -43,28 +69,6 @@ impl Triangle {
         (0.0, 0.0),
         (1.0, 0.0),
     );
-
-    /// A new [`Triangle`] from three vertices ([`Point`]s).
-    #[inline(always)]
-    pub fn new(a: impl Into<Point>, b: impl Into<Point>, c: impl Into<Point>) -> Self {
-        Self {
-            a: a.into(),
-            b: b.into(),
-            c: c.into(),
-        }
-    }
-
-    /// A new [`Triangle`] from three float vertex coordinates.
-    ///
-    /// Works as a constant [`Triangle::new`].
-    #[inline(always)]
-    pub const fn from_coords(a: (f64, f64), b: (f64, f64), c: (f64, f64)) -> Self {
-        Self {
-            a: Point::new(a.0, a.1),
-            b: Point::new(b.0, b.1),
-            c: Point::new(c.0, c.1),
-        }
-    }
 
     /// The centroid of the [`Triangle`].
     #[inline]
@@ -164,26 +168,26 @@ impl Triangle {
     }
 }
 
-impl From<(Point, Point, Point)> for Triangle {
-    fn from(points: (Point, Point, Point)) -> Triangle {
+impl<T> From<(Point<T>, Point<T>, Point<T>)> for Triangle<T> {
+    fn from(points: (Point<T>, Point<T>, Point<T>)) -> Triangle<T> {
         Triangle::new(points.0, points.1, points.2)
     }
 }
 
-impl Add<Vec2> for Triangle {
-    type Output = Triangle;
+impl<T: Add<Output = T> + Copy> Add<Vec2<T>> for Triangle<T> {
+    type Output = Triangle<T>;
 
     #[inline]
-    fn add(self, v: Vec2) -> Triangle {
+    fn add(self, v: Vec2<T>) -> Triangle<T> {
         Triangle::new(self.a + v, self.b + v, self.c + v)
     }
 }
 
-impl Sub<Vec2> for Triangle {
-    type Output = Triangle;
+impl<T: Sub<Output = T> + Copy> Sub<Vec2<T>> for Triangle<T> {
+    type Output = Triangle<T>;
 
     #[inline]
-    fn sub(self, v: Vec2) -> Triangle {
+    fn sub(self, v: Vec2<T>) -> Triangle<T> {
         Triangle::new(self.a - v, self.b - v, self.c - v)
     }
 }
@@ -195,6 +199,8 @@ pub struct TrianglePathIter {
 }
 
 impl Shape for Triangle {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = TrianglePathIter;
 
     fn path_elements(&self, _tolerance: f64) -> TrianglePathIter {

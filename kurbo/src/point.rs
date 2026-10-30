@@ -25,31 +25,62 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Default, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Point {
+pub struct Point<T = f64> {
     /// The x coordinate.
-    pub x: f64,
+    pub x: T,
     /// The y coordinate.
-    pub y: f64,
+    pub y: T,
+}
+
+impl<T> Point<T> {
+    /// Create a new `Point` with the provided `x` and `y` coordinates.
+    #[inline(always)]
+    pub const fn new(x: T, y: T) -> Self {
+        Point { x, y }
+    }
+}
+
+impl<T: Copy> Point<T> {
+    /// Convert this point into a `Vec2`.
+    #[inline(always)]
+    pub const fn to_vec2(self) -> Vec2<T> {
+        Vec2::new(self.x, self.y)
+    }
 }
 
 impl Point {
+    /// Get the member matching the given axis.
+    #[inline]
+    pub const fn get_coord(self, axis: Axis) -> f64 {
+        match axis {
+            Axis::Horizontal => self.x,
+            Axis::Vertical => self.y,
+        }
+    }
+
+    /// Get a mutable reference to the member matching the given axis.
+    #[inline]
+    pub const fn get_coord_mut(&mut self, axis: Axis) -> &mut f64 {
+        match axis {
+            Axis::Horizontal => &mut self.x,
+            Axis::Vertical => &mut self.y,
+        }
+    }
+
+    /// Set the member matching the given axis to the given value.
+    #[inline]
+    pub const fn set_coord(&mut self, axis: Axis, value: f64) {
+        match axis {
+            Axis::Horizontal => self.x = value,
+            Axis::Vertical => self.y = value,
+        }
+    }
+
     /// The point (0, 0).
     pub const ZERO: Point = Point::new(0., 0.);
 
     /// The point at the origin; (0, 0).
     pub const ORIGIN: Point = Point::new(0., 0.);
-
-    /// Create a new `Point` with the provided `x` and `y` coordinates.
-    #[inline(always)]
-    pub const fn new(x: f64, y: f64) -> Self {
-        Point { x, y }
-    }
-
-    /// Convert this point into a `Vec2`.
-    #[inline(always)]
-    pub const fn to_vec2(self) -> Vec2 {
-        Vec2::new(self.x, self.y)
-    }
 
     /// Linearly interpolate between two points.
     #[inline]
@@ -202,33 +233,6 @@ impl Point {
     pub const fn is_nan(self) -> bool {
         self.x.is_nan() || self.y.is_nan()
     }
-
-    /// Get the member matching the given axis.
-    #[inline]
-    pub const fn get_coord(self, axis: Axis) -> f64 {
-        match axis {
-            Axis::Horizontal => self.x,
-            Axis::Vertical => self.y,
-        }
-    }
-
-    /// Get a mutable reference to the member matching the given axis.
-    #[inline]
-    pub const fn get_coord_mut(&mut self, axis: Axis) -> &mut f64 {
-        match axis {
-            Axis::Horizontal => &mut self.x,
-            Axis::Vertical => &mut self.y,
-        }
-    }
-
-    /// Set the member matching the given axis to the given value.
-    #[inline]
-    pub const fn set_coord(&mut self, axis: Axis, value: f64) {
-        match axis {
-            Axis::Horizontal => self.x = value,
-            Axis::Vertical => self.y = value,
-        }
-    }
 }
 
 impl From<(f32, f32)> for Point {
@@ -241,100 +245,104 @@ impl From<(f32, f32)> for Point {
     }
 }
 
-impl From<(f64, f64)> for Point {
+impl<T> From<(T, T)> for Point<T> {
     #[inline(always)]
-    fn from(v: (f64, f64)) -> Point {
+    fn from(v: (T, T)) -> Point<T> {
         Point { x: v.0, y: v.1 }
     }
 }
 
-impl From<Point> for (f64, f64) {
+impl<T> From<Point<T>> for (T, T) {
     #[inline(always)]
-    fn from(v: Point) -> (f64, f64) {
+    fn from(v: Point<T>) -> (T, T) {
         (v.x, v.y)
     }
 }
 
-impl Add<Vec2> for Point {
-    type Output = Point;
+impl<T: Add<Output = T>> Add<Vec2<T>> for Point<T> {
+    type Output = Point<T>;
 
     #[inline]
-    fn add(self, other: Vec2) -> Self {
+    fn add(self, other: Vec2<T>) -> Self {
         Point::new(self.x + other.x, self.y + other.y)
     }
 }
 
-impl AddAssign<Vec2> for Point {
+impl<T: AddAssign> AddAssign<Vec2<T>> for Point<T> {
     #[inline]
-    fn add_assign(&mut self, other: Vec2) {
-        *self = Point::new(self.x + other.x, self.y + other.y);
+    fn add_assign(&mut self, other: Vec2<T>) {
+        self.x += other.x;
+        self.y += other.y;
     }
 }
 
-impl Sub<Vec2> for Point {
-    type Output = Point;
+impl<T: Sub<Output = T>> Sub<Vec2<T>> for Point<T> {
+    type Output = Point<T>;
 
     #[inline]
-    fn sub(self, other: Vec2) -> Self {
+    fn sub(self, other: Vec2<T>) -> Self {
         Point::new(self.x - other.x, self.y - other.y)
     }
 }
 
-impl SubAssign<Vec2> for Point {
+impl<T: SubAssign> SubAssign<Vec2<T>> for Point<T> {
     #[inline]
-    fn sub_assign(&mut self, other: Vec2) {
-        *self = Point::new(self.x - other.x, self.y - other.y);
+    fn sub_assign(&mut self, other: Vec2<T>) {
+        self.x -= other.x;
+        self.y -= other.y;
     }
 }
 
-impl Add<(f64, f64)> for Point {
-    type Output = Point;
+impl<T: Add<Output = T>> Add<(T, T)> for Point<T> {
+    type Output = Point<T>;
 
     #[inline]
-    fn add(self, (x, y): (f64, f64)) -> Self {
+    fn add(self, (x, y): (T, T)) -> Self {
         Point::new(self.x + x, self.y + y)
     }
 }
 
-impl AddAssign<(f64, f64)> for Point {
+impl<T: AddAssign> AddAssign<(T, T)> for Point<T> {
     #[inline]
-    fn add_assign(&mut self, (x, y): (f64, f64)) {
-        *self = Point::new(self.x + x, self.y + y);
+    fn add_assign(&mut self, (x, y): (T, T)) {
+        self.x += x;
+        self.y += y;
     }
 }
 
-impl Sub<(f64, f64)> for Point {
-    type Output = Point;
+impl<T: Sub<Output = T>> Sub<(T, T)> for Point<T> {
+    type Output = Point<T>;
 
     #[inline]
-    fn sub(self, (x, y): (f64, f64)) -> Self {
+    fn sub(self, (x, y): (T, T)) -> Self {
         Point::new(self.x - x, self.y - y)
     }
 }
 
-impl SubAssign<(f64, f64)> for Point {
+impl<T: SubAssign> SubAssign<(T, T)> for Point<T> {
     #[inline]
-    fn sub_assign(&mut self, (x, y): (f64, f64)) {
-        *self = Point::new(self.x - x, self.y - y);
+    fn sub_assign(&mut self, (x, y): (T, T)) {
+        self.x -= x;
+        self.y -= y;
     }
 }
 
-impl Sub<Point> for Point {
-    type Output = Vec2;
+impl<T: Sub<Output = T>> Sub<Point<T>> for Point<T> {
+    type Output = Vec2<T>;
 
     #[inline]
-    fn sub(self, other: Point) -> Vec2 {
+    fn sub(self, other: Point<T>) -> Vec2<T> {
         Vec2::new(self.x - other.x, self.y - other.y)
     }
 }
 
-impl fmt::Debug for Point {
+impl<T: fmt::Debug> fmt::Debug for Point<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "({:?}, {:?})", self.x, self.y)
     }
 }
 
-impl fmt::Display for Point {
+impl<T: fmt::Display> fmt::Display for Point<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "(")?;
         fmt::Display::fmt(&self.x, formatter)?;
@@ -345,17 +353,17 @@ impl fmt::Display for Point {
 }
 
 #[cfg(feature = "mint")]
-impl From<Point> for mint::Point2<f64> {
+impl<T> From<Point<T>> for mint::Point2<T> {
     #[inline(always)]
-    fn from(p: Point) -> mint::Point2<f64> {
+    fn from(p: Point<T>) -> mint::Point2<T> {
         mint::Point2 { x: p.x, y: p.y }
     }
 }
 
 #[cfg(feature = "mint")]
-impl From<mint::Point2<f64>> for Point {
+impl<T> From<mint::Point2<T>> for Point<T> {
     #[inline(always)]
-    fn from(p: mint::Point2<f64>) -> Point {
+    fn from(p: mint::Point2<T>) -> Point<T> {
         Point { x: p.x, y: p.y }
     }
 }

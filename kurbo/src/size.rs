@@ -16,11 +16,37 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Default, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Size {
+pub struct Size<T = f64> {
     /// The width.
-    pub width: f64,
+    pub width: T,
     /// The height.
-    pub height: f64,
+    pub height: T,
+}
+
+impl<T> Size<T> {
+    /// Create a new `Size` with the provided `width` and `height`.
+    #[inline(always)]
+    pub const fn new(width: T, height: T) -> Self {
+        Size { width, height }
+    }
+
+    /// Get a mutable reference to the member matching the given axis.
+    #[inline]
+    pub const fn get_coord_mut(&mut self, axis: Axis) -> &mut T {
+        match axis {
+            Axis::Horizontal => &mut self.width,
+            Axis::Vertical => &mut self.height,
+        }
+    }
+}
+
+impl<T: Copy> Size<T> {
+    /// Convert this size into a [`Vec2`], with `width` mapped to `x` and `height`
+    /// mapped to `y`.
+    #[inline(always)]
+    pub const fn to_vec2(self) -> Vec2<T> {
+        Vec2::new(self.width, self.height)
+    }
 }
 
 impl Size {
@@ -29,12 +55,6 @@ impl Size {
 
     /// A size with width and height set to `f64::INFINITY`.
     pub const INFINITY: Size = Size::new(f64::INFINITY, f64::INFINITY);
-
-    /// Create a new `Size` with the provided `width` and `height`.
-    #[inline(always)]
-    pub const fn new(width: f64, height: f64) -> Self {
-        Size { width, height }
-    }
 
     /// Returns the max of `width` and `height`.
     ///
@@ -127,13 +147,6 @@ impl Size {
     /// ```
     pub const fn clamp(self, min: Size, max: Size) -> Self {
         self.max(min).min(max)
-    }
-
-    /// Convert this size into a [`Vec2`], with `width` mapped to `x` and `height`
-    /// mapped to `y`.
-    #[inline(always)]
-    pub const fn to_vec2(self) -> Vec2 {
-        Vec2::new(self.width, self.height)
     }
 
     /// Returns a new `Size`,
@@ -316,15 +329,6 @@ impl Size {
         }
     }
 
-    /// Get a mutable reference to the member matching the given axis.
-    #[inline]
-    pub const fn get_coord_mut(&mut self, axis: Axis) -> &mut f64 {
-        match axis {
-            Axis::Horizontal => &mut self.width,
-            Axis::Vertical => &mut self.height,
-        }
-    }
-
     /// Set the member matching the given axis to the given value.
     #[inline]
     pub const fn set_coord(&mut self, axis: Axis, value: f64) {
@@ -335,13 +339,13 @@ impl Size {
     }
 }
 
-impl fmt::Debug for Size {
+impl<T: fmt::Debug> fmt::Debug for Size<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}W×{:?}H", self.width, self.height)
     }
 }
 
-impl fmt::Display for Size {
+impl<T: fmt::Display> fmt::Display for Size<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "(")?;
         fmt::Display::fmt(&self.width, formatter)?;
@@ -351,13 +355,11 @@ impl fmt::Display for Size {
     }
 }
 
-impl MulAssign<f64> for Size {
+impl<T: MulAssign + Copy> MulAssign<T> for Size<T> {
     #[inline]
-    fn mul_assign(&mut self, other: f64) {
-        *self = Size {
-            width: self.width * other,
-            height: self.height * other,
-        };
+    fn mul_assign(&mut self, other: T) {
+        self.width *= other;
+        self.height *= other;
     }
 }
 
@@ -370,11 +372,11 @@ impl Mul<Size> for f64 {
     }
 }
 
-impl Mul<f64> for Size {
-    type Output = Size;
+impl<T: Mul<Output = T> + Copy> Mul<T> for Size<T> {
+    type Output = Size<T>;
 
     #[inline]
-    fn mul(self, other: f64) -> Size {
+    fn mul(self, other: T) -> Size<T> {
         Size {
             width: self.width * other,
             height: self.height * other,
@@ -382,21 +384,19 @@ impl Mul<f64> for Size {
     }
 }
 
-impl DivAssign<f64> for Size {
+impl<T: DivAssign + Copy> DivAssign<T> for Size<T> {
     #[inline]
-    fn div_assign(&mut self, other: f64) {
-        *self = Size {
-            width: self.width / other,
-            height: self.height / other,
-        };
+    fn div_assign(&mut self, other: T) {
+        self.width /= other;
+        self.height /= other;
     }
 }
 
-impl Div<f64> for Size {
-    type Output = Size;
+impl<T: Div<Output = T> + Copy> Div<T> for Size<T> {
+    type Output = Size<T>;
 
     #[inline]
-    fn div(self, other: f64) -> Size {
+    fn div(self, other: T) -> Size<T> {
         Size {
             width: self.width / other,
             height: self.height / other,
@@ -404,10 +404,10 @@ impl Div<f64> for Size {
     }
 }
 
-impl Add<Size> for Size {
-    type Output = Size;
+impl<T: Add<Output = T>> Add<Size<T>> for Size<T> {
+    type Output = Size<T>;
     #[inline]
-    fn add(self, other: Size) -> Size {
+    fn add(self, other: Size<T>) -> Size<T> {
         Size {
             width: self.width + other.width,
             height: self.height + other.height,
@@ -415,17 +415,18 @@ impl Add<Size> for Size {
     }
 }
 
-impl AddAssign<Size> for Size {
+impl<T: AddAssign> AddAssign<Size<T>> for Size<T> {
     #[inline]
-    fn add_assign(&mut self, other: Size) {
-        *self = *self + other;
+    fn add_assign(&mut self, other: Size<T>) {
+        self.width += other.width;
+        self.height += other.height;
     }
 }
 
-impl Sub<Size> for Size {
-    type Output = Size;
+impl<T: Sub<Output = T>> Sub<Size<T>> for Size<T> {
+    type Output = Size<T>;
     #[inline]
-    fn sub(self, other: Size) -> Size {
+    fn sub(self, other: Size<T>) -> Size<T> {
         Size {
             width: self.width - other.width,
             height: self.height - other.height,
@@ -433,16 +434,17 @@ impl Sub<Size> for Size {
     }
 }
 
-impl SubAssign<Size> for Size {
+impl<T: SubAssign> SubAssign<Size<T>> for Size<T> {
     #[inline]
-    fn sub_assign(&mut self, other: Size) {
-        *self = *self - other;
+    fn sub_assign(&mut self, other: Size<T>) {
+        self.width -= other.width;
+        self.height -= other.height;
     }
 }
 
-impl From<(f64, f64)> for Size {
+impl<T> From<(T, T)> for Size<T> {
     #[inline(always)]
-    fn from(v: (f64, f64)) -> Size {
+    fn from(v: (T, T)) -> Size<T> {
         Size {
             width: v.0,
             height: v.1,
@@ -450,9 +452,9 @@ impl From<(f64, f64)> for Size {
     }
 }
 
-impl From<Size> for (f64, f64) {
+impl<T> From<Size<T>> for (T, T) {
     #[inline(always)]
-    fn from(v: Size) -> (f64, f64) {
+    fn from(v: Size<T>) -> (T, T) {
         (v.width, v.height)
     }
 }

@@ -188,6 +188,8 @@ impl SimplifyBezPath {
 }
 
 impl ParamCurveFit for SimplifyBezPath {
+    type Scalar = f64;
+
     fn sample_pt_deriv(&self, t: f64) -> (Point, Vec2) {
         let (mut i, mut t0) = self.scale(t);
         let n = self.0.len();

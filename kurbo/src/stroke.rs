@@ -45,21 +45,21 @@ pub enum Cap {
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Stroke {
+pub struct Stroke<T = f64> {
     /// Width of the stroke.
-    pub width: f64,
+    pub width: T,
     /// Style for connecting segments of the stroke.
     pub join: Join,
     /// Limit for miter joins.
-    pub miter_limit: f64,
+    pub miter_limit: T,
     /// Style for capping the beginning of an open subpath.
     pub start_cap: Cap,
     /// Style for capping the end of an open subpath.
     pub end_cap: Cap,
     /// Lengths of dashes in alternating on/off order.
-    pub dash_pattern: Dashes,
+    pub dash_pattern: Dashes<T>,
     /// Offset of the first dash.
-    pub dash_offset: f64,
+    pub dash_offset: T,
 }
 
 /// Options for path stroking.
@@ -195,7 +195,7 @@ impl StrokeOpts {
 }
 
 /// Collection of values representing lengths in a dash pattern.
-pub type Dashes = SmallVec<[f64; 4]>;
+pub type Dashes<T = f64> = SmallVec<[T; 4]>;
 
 /// A structure that is used for creating strokes.
 ///

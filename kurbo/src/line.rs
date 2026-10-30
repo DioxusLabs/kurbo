@@ -17,23 +17,25 @@ use crate::{
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Line {
+pub struct Line<T = f64> {
     /// The line's start point.
-    pub p0: Point,
+    pub p0: Point<T>,
     /// The line's end point.
-    pub p1: Point,
+    pub p1: Point<T>,
 }
 
-impl Line {
+impl<T> Line<T> {
     /// Create a new line.
     #[inline(always)]
-    pub fn new(p0: impl Into<Point>, p1: impl Into<Point>) -> Line {
+    pub fn new(p0: impl Into<Point<T>>, p1: impl Into<Point<T>>) -> Line<T> {
         Line {
             p0: p0.into(),
             p1: p1.into(),
         }
     }
+}
 
+impl Line {
     /// Returns a copy of this `Line` with the end points swapped so that it
     /// points in the opposite direction.
     #[must_use]
@@ -90,21 +92,23 @@ impl Line {
     }
 }
 
-impl From<(Point, Point)> for Line {
+impl<T> From<(Point<T>, Point<T>)> for Line<T> {
     #[inline(always)]
-    fn from((from, to): (Point, Point)) -> Self {
+    fn from((from, to): (Point<T>, Point<T>)) -> Self {
         Line::new(from, to)
     }
 }
 
-impl From<(Point, Vec2)> for Line {
+impl<T: Add<Output = T> + Copy> From<(Point<T>, Vec2<T>)> for Line<T> {
     #[inline(always)]
-    fn from((origin, displacement): (Point, Vec2)) -> Self {
+    fn from((origin, displacement): (Point<T>, Vec2<T>)) -> Self {
         Line::new(origin, origin + displacement)
     }
 }
 
 impl ParamCurve for Line {
+    type Scalar = f64;
+
     #[inline]
     fn eval(&self, t: f64) -> Point {
         self.p0.lerp(self.p1, t)
@@ -130,6 +134,8 @@ impl ParamCurve for Line {
 }
 
 impl ParamCurveDeriv for Line {
+    type Scalar = f64;
+
     type DerivResult = ConstPoint;
 
     #[inline]
@@ -151,6 +157,8 @@ impl ParamCurveArclen for Line {
 }
 
 impl ParamCurveArea for Line {
+    type Scalar = f64;
+
     #[inline]
     fn signed_area(&self) -> f64 {
         self.p0.to_vec2().cross(self.p1.to_vec2()) * 0.5
@@ -158,6 +166,8 @@ impl ParamCurveArea for Line {
 }
 
 impl ParamCurveNearest for Line {
+    type Scalar = f64;
+
     #[inline]
     fn nearest(&self, p: Point, _accuracy: f64) -> Nearest {
         let d = self.p1 - self.p0;
@@ -224,6 +234,8 @@ impl ConstPoint {
 }
 
 impl ParamCurve for ConstPoint {
+    type Scalar = f64;
+
     #[inline(always)]
     fn eval(&self, _t: f64) -> Point {
         self.0
@@ -236,6 +248,8 @@ impl ParamCurve for ConstPoint {
 }
 
 impl ParamCurveDeriv for ConstPoint {
+    type Scalar = f64;
+
     type DerivResult = ConstPoint;
 
     #[inline(always)]
@@ -268,20 +282,20 @@ impl Mul<Line> for Affine {
     }
 }
 
-impl Add<Vec2> for Line {
-    type Output = Line;
+impl<T: Add<Output = T> + Copy> Add<Vec2<T>> for Line<T> {
+    type Output = Line<T>;
 
     #[inline]
-    fn add(self, v: Vec2) -> Line {
+    fn add(self, v: Vec2<T>) -> Line<T> {
         Line::new(self.p0 + v, self.p1 + v)
     }
 }
 
-impl Sub<Vec2> for Line {
-    type Output = Line;
+impl<T: Sub<Output = T> + Copy> Sub<Vec2<T>> for Line<T> {
+    type Output = Line<T>;
 
     #[inline]
-    fn sub(self, v: Vec2) -> Line {
+    fn sub(self, v: Vec2<T>) -> Line<T> {
         Line::new(self.p0 - v, self.p1 - v)
     }
 }
@@ -294,6 +308,8 @@ pub struct LinePathIter {
 }
 
 impl Shape for Line {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = LinePathIter;
 
     #[inline]

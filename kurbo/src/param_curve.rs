@@ -23,6 +23,11 @@ pub const DEFAULT_ACCURACY: f64 = 1e-6;
 /// If the result is interpreted as a point, this represents a curve.
 /// But the result can be interpreted as a vector as well.
 pub trait ParamCurve: Sized {
+    /// The scalar type used for parameters and coordinates.
+    ///
+    /// Currently every implementation in this crate uses `f64`.
+    type Scalar;
+
     /// Evaluate the curve at parameter `t`.
     ///
     /// Generally `t` is in the range [0..1].
@@ -52,6 +57,11 @@ pub trait ParamCurve: Sized {
 
 /// A differentiable parameterized curve.
 pub trait ParamCurveDeriv {
+    /// The scalar type used for parameters and coordinates.
+    ///
+    /// Currently every implementation in this crate uses `f64`.
+    type Scalar;
+
     /// The parametric curve obtained by taking the derivative of this one.
     type DerivResult: ParamCurve;
 
@@ -125,6 +135,11 @@ pub trait ParamCurveArclen: ParamCurve {
 
 /// A parameterized curve that can have its signed area measured.
 pub trait ParamCurveArea {
+    /// The scalar type used for the area.
+    ///
+    /// Currently every implementation in this crate uses `f64`.
+    type Scalar;
+
     /// Compute the signed area under the curve.
     ///
     /// For a closed path, the signed area of the path is the sum of signed
@@ -156,6 +171,11 @@ pub struct Nearest {
 
 /// A parameterized curve that reports the nearest point.
 pub trait ParamCurveNearest {
+    /// The scalar type used for parameters and distances.
+    ///
+    /// Currently every implementation in this crate uses `f64`.
+    type Scalar;
+
     /// Find the position on the curve that is nearest to the given point.
     ///
     /// This returns a [`Nearest`] struct that contains information about

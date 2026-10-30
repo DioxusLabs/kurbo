@@ -4,6 +4,7 @@
 //! A rectangle with rounded corners.
 
 use core::f64::consts::{FRAC_PI_2, FRAC_PI_4};
+use core::fmt;
 use core::ops::{Add, Sub};
 
 use crate::{Arc, PathEl, Point, Rect, RoundedRectRadii, Shape, Size, Vec2, arc::ArcAppendIter};
@@ -32,14 +33,23 @@ use crate::common::FloatFuncs;
 /// ```
 ///
 /// [`to_rounded_rect`]: Rect::to_rounded_rect
-#[derive(Clone, Copy, Default, Debug, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RoundedRect {
+pub struct RoundedRect<T = f64> {
     /// Coordinates of the rectangle.
-    rect: Rect,
+    rect: Rect<T>,
     /// Radius of all four corners.
-    radii: RoundedRectRadii,
+    radii: RoundedRectRadii<T>,
+}
+
+impl<T: fmt::Debug + Sub<Output = T> + Copy> fmt::Debug for RoundedRect<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("RoundedRect")
+            .field("rect", &self.rect)
+            .field("radii", &self.radii)
+            .finish()
+    }
 }
 
 impl RoundedRect {
@@ -154,6 +164,8 @@ pub struct RoundedRectPathIter {
 }
 
 impl Shape for RoundedRect {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = RoundedRectPathIter;
 
     fn path_elements(&self, tolerance: f64) -> RoundedRectPathIter {

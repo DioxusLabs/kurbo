@@ -15,15 +15,24 @@ use crate::{Affine, Arc, ArcAppendIter, Circle, PathEl, Point, Rect, Shape, Size
 use crate::common::FloatFuncs;
 
 /// An ellipse.
-#[derive(Clone, Copy, Default, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Ellipse {
+pub struct Ellipse<T = f64> {
     /// All ellipses can be represented as an affine map of the unit circle,
     /// centred at (0, 0). Therefore we can store the ellipse as an affine map,
     /// with the implication that it be applied to the unit circle to recover the
     /// actual shape.
-    inner: Affine,
+    inner: Affine<T>,
+}
+
+impl Default for Ellipse {
+    #[inline]
+    fn default() -> Self {
+        Ellipse {
+            inner: Affine::IDENTITY,
+        }
+    }
 }
 
 impl Ellipse {
@@ -221,6 +230,8 @@ impl From<Circle> for Ellipse {
 }
 
 impl Shape for Ellipse {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = iter::Chain<iter::Once<PathEl>, ArcAppendIter>;
 
     fn path_elements(&self, tolerance: f64) -> Self::PathElementsIter<'_> {

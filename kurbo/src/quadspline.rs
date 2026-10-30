@@ -9,15 +9,17 @@ use alloc::vec::Vec;
 
 /// A quadratic Bézier spline in [B-spline](https://en.wikipedia.org/wiki/B-spline) format.
 #[derive(Clone, Debug, PartialEq)]
-pub struct QuadSpline(Vec<Point>);
+pub struct QuadSpline<T = f64>(Vec<Point<T>>);
 
-impl QuadSpline {
+impl<T> QuadSpline<T> {
     /// Construct a new `QuadSpline` from an array of [`Point`]s.
     #[inline(always)]
-    pub fn new(points: Vec<Point>) -> Self {
+    pub fn new(points: Vec<Point<T>>) -> Self {
         Self(points)
     }
+}
 
+impl QuadSpline {
     /// Return the spline's control [`Point`]s.
     #[inline(always)]
     pub fn points(&self) -> &[Point] {

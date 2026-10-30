@@ -21,6 +21,8 @@ fn eval_mypoly_deriv(x: f64) -> f64 {
 }
 
 impl ParamCurveFit for MyPoly {
+    type Scalar = f64;
+
     fn sample_pt_deriv(&self, t: f64) -> (Point, Vec2) {
         const S: f64 = 336.;
         let x = 37. + t * S;

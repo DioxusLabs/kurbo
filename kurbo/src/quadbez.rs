@@ -23,23 +23,25 @@ use crate::common::FloatFuncs;
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[allow(missing_docs)]
-pub struct QuadBez {
-    pub p0: Point,
-    pub p1: Point,
-    pub p2: Point,
+pub struct QuadBez<T = f64> {
+    pub p0: Point<T>,
+    pub p1: Point<T>,
+    pub p2: Point<T>,
 }
 
-impl QuadBez {
+impl<T> QuadBez<T> {
     /// Create a new quadratic Bézier segment.
     #[inline]
-    pub fn new<V: Into<Point>>(p0: V, p1: V, p2: V) -> QuadBez {
+    pub fn new<V: Into<Point<T>>>(p0: V, p1: V, p2: V) -> QuadBez<T> {
         QuadBez {
             p0: p0.into(),
             p1: p1.into(),
             p2: p2.into(),
         }
     }
+}
 
+impl QuadBez {
     /// Raise the order by 1.
     ///
     /// Returns a cubic Bézier segment that exactly represents this quadratic.
@@ -150,6 +152,8 @@ pub struct QuadBezIter {
 }
 
 impl Shape for QuadBez {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = QuadBezIter;
 
     #[inline]
@@ -213,6 +217,8 @@ fn approx_parabola_inv_integral(x: f64) -> f64 {
 }
 
 impl ParamCurve for QuadBez {
+    type Scalar = f64;
+
     #[inline]
     fn eval(&self, t: f64) -> Point {
         let mt = 1.0 - t;
@@ -251,6 +257,8 @@ impl ParamCurve for QuadBez {
 }
 
 impl ParamCurveDeriv for QuadBez {
+    type Scalar = f64;
+
     type DerivResult = Line;
 
     #[inline]
@@ -322,6 +330,8 @@ impl ParamCurveArclen for QuadBez {
 }
 
 impl ParamCurveArea for QuadBez {
+    type Scalar = f64;
+
     #[inline]
     fn signed_area(&self) -> f64 {
         (self.p0.x * (2.0 * self.p1.y + self.p2.y) + 2.0 * self.p1.x * (self.p2.y - self.p0.y)
@@ -331,6 +341,8 @@ impl ParamCurveArea for QuadBez {
 }
 
 impl ParamCurveNearest for QuadBez {
+    type Scalar = f64;
+
     /// Find the nearest point, using analytical algorithm based on cubic root finding.
     fn nearest(&self, p: Point, _accuracy: f64) -> Nearest {
         fn eval_t(p: Point, t_best: &mut f64, r_best: &mut Option<f64>, t: f64, p0: Point) {

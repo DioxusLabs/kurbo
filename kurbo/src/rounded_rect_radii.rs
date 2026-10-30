@@ -20,23 +20,23 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct RoundedRectRadii {
+pub struct RoundedRectRadii<T = f64> {
     /// The radius of the top-left corner.
-    pub top_left: f64,
+    pub top_left: T,
     /// The radius of the top-right corner.
-    pub top_right: f64,
+    pub top_right: T,
     /// The radius of the bottom-right corner.
-    pub bottom_right: f64,
+    pub bottom_right: T,
     /// The radius of the bottom-left corner.
-    pub bottom_left: f64,
+    pub bottom_left: T,
 }
 
-impl RoundedRectRadii {
+impl<T> RoundedRectRadii<T> {
     /// Create a new `RoundedRectRadii`. This function takes radius values for
     /// the four corners. The argument order is `top_left`, `top_right`,
     /// `bottom_right`, `bottom_left`, or clockwise starting from `top_left`.
     #[inline(always)]
-    pub const fn new(top_left: f64, top_right: f64, bottom_right: f64, bottom_left: f64) -> Self {
+    pub const fn new(top_left: T, top_right: T, bottom_right: T, bottom_left: T) -> Self {
         RoundedRectRadii {
             top_left,
             top_right,
@@ -44,11 +44,13 @@ impl RoundedRectRadii {
             bottom_left,
         }
     }
+}
 
+impl<T: Copy> RoundedRectRadii<T> {
     /// Create a new `RoundedRectRadii` from a single radius. The `radius`
     /// argument will be set as the radius for all four corners.
     #[inline(always)]
-    pub const fn from_single_radius(radius: f64) -> Self {
+    pub const fn from_single_radius(radius: T) -> Self {
         RoundedRectRadii {
             top_left: radius,
             top_right: radius,
@@ -56,7 +58,9 @@ impl RoundedRectRadii {
             bottom_left: radius,
         }
     }
+}
 
+impl RoundedRectRadii {
     /// Takes the absolute value of all corner radii.
     pub const fn abs(&self) -> Self {
         RoundedRectRadii::new(
@@ -109,16 +113,16 @@ impl RoundedRectRadii {
     }
 }
 
-impl From<f64> for RoundedRectRadii {
+impl<T: Copy> From<T> for RoundedRectRadii<T> {
     #[inline(always)]
-    fn from(radius: f64) -> Self {
+    fn from(radius: T) -> Self {
         RoundedRectRadii::from_single_radius(radius)
     }
 }
 
-impl From<(f64, f64, f64, f64)> for RoundedRectRadii {
+impl<T> From<(T, T, T, T)> for RoundedRectRadii<T> {
     #[inline(always)]
-    fn from(radii: (f64, f64, f64, f64)) -> Self {
+    fn from(radii: (T, T, T, T)) -> Self {
         RoundedRectRadii::new(radii.0, radii.1, radii.2, radii.3)
     }
 }

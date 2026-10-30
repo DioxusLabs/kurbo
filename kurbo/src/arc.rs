@@ -17,29 +17,29 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Arc {
+pub struct Arc<T = f64> {
     /// The arc's centre point.
-    pub center: Point,
+    pub center: Point<T>,
     /// The arc's radii, where the vector's x-component is the radius in the
     /// positive x direction after applying `x_rotation`.
-    pub radii: Vec2,
+    pub radii: Vec2<T>,
     /// The start angle in radians.
-    pub start_angle: f64,
+    pub start_angle: T,
     /// The angle between the start and end of the arc, in radians.
-    pub sweep_angle: f64,
+    pub sweep_angle: T,
     /// How much the arc is rotated, in radians.
-    pub x_rotation: f64,
+    pub x_rotation: T,
 }
 
-impl Arc {
+impl<T> Arc<T> {
     /// Create a new `Arc`.
     #[inline(always)]
     pub fn new(
-        center: impl Into<Point>,
-        radii: impl Into<Vec2>,
-        start_angle: f64,
-        sweep_angle: f64,
-        x_rotation: f64,
+        center: impl Into<Point<T>>,
+        radii: impl Into<Vec2<T>>,
+        start_angle: T,
+        sweep_angle: T,
+        x_rotation: T,
     ) -> Self {
         Self {
             center: center.into(),
@@ -49,7 +49,9 @@ impl Arc {
             x_rotation,
         }
     }
+}
 
+impl Arc {
     /// Returns a copy of this `Arc` in the opposite direction.
     ///
     /// The new `Arc` will sweep towards the original `Arc`s
@@ -178,6 +180,8 @@ fn rotate_pt(pt: Vec2, angle: f64) -> Vec2 {
 }
 
 impl ParamCurve for Arc {
+    type Scalar = f64;
+
     fn eval(&self, t: f64) -> Point {
         self.center + sample_ellipse(self.radii, self.x_rotation, self.angle_at(t))
     }
@@ -194,6 +198,8 @@ impl ParamCurve for Arc {
 }
 
 impl Shape for Arc {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = iter::Chain<iter::Once<PathEl>, ArcAppendIter>;
 
     fn path_elements(&self, tolerance: f64) -> Self::PathElementsIter<'_> {

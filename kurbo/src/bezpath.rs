@@ -100,10 +100,17 @@ use crate::common::FloatFuncs;
 /// [`segments` free function]: segments
 /// [`FromIterator<PathEl>`]: std::iter::FromIterator
 /// [`Extend<PathEl>`]: std::iter::Extend
-#[derive(Clone, Default, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BezPath(Vec<PathEl>);
+pub struct BezPath<T = f64>(Vec<PathEl<T>>);
+
+impl<T> Default for BezPath<T> {
+    #[inline]
+    fn default() -> Self {
+        BezPath(Vec::new())
+    }
+}
 
 /// The element of a Bézier path.
 ///
@@ -111,20 +118,20 @@ pub struct BezPath(Vec<PathEl>);
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum PathEl {
+pub enum PathEl<T = f64> {
     /// Move directly to the point without drawing anything, starting a new
     /// subpath.
-    MoveTo(Point),
+    MoveTo(Point<T>),
     /// Draw a line from the current location to the point.
-    LineTo(Point),
+    LineTo(Point<T>),
     /// Draw a quadratic Bézier using the current location and the two points.
     ///
     /// The first point is the Bézier's control point, the second is its end point.
-    QuadTo(Point, Point),
+    QuadTo(Point<T>, Point<T>),
     /// Draw a cubic Bézier using the current location and the three points.
     ///
     /// The first two points are the Bézier's control points, the last point is its end point.
-    CurveTo(Point, Point, Point),
+    CurveTo(Point<T>, Point<T>, Point<T>),
     /// Close off the path.
     ClosePath,
 }
@@ -133,13 +140,13 @@ pub enum PathEl {
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum PathSeg {
+pub enum PathSeg<T = f64> {
     /// A line segment.
-    Line(Line),
+    Line(Line<T>),
     /// A quadratic Bézier segment.
-    Quad(QuadBez),
+    Quad(QuadBez<T>),
     /// A cubic Bézier segment.
-    Cubic(CubicBez),
+    Cubic(CubicBez<T>),
 }
 
 /// An intersection of a [`Line`] and a [`PathSeg`].
@@ -177,10 +184,10 @@ pub struct MinDistance {
     pub t2: f64,
 }
 
-impl BezPath {
+impl<T> BezPath<T> {
     /// Create a new path.
     #[inline(always)]
-    pub fn new() -> BezPath {
+    pub fn new() -> BezPath<T> {
         BezPath::default()
     }
 
@@ -188,7 +195,7 @@ impl BezPath {
     ///
     /// This can be useful if you already know how many path elements the path
     /// will consist of, to prevent reallocations.
-    pub fn with_capacity(capacity: usize) -> BezPath {
+    pub fn with_capacity(capacity: usize) -> BezPath<T> {
         BezPath(Vec::with_capacity(capacity))
     }
 
@@ -204,30 +211,30 @@ impl BezPath {
     /// let as_vec: Vec<PathEl> = path.into_iter().collect();
     /// let back_to_path: BezPath = as_vec.into_iter().collect();
     /// ```
-    pub fn from_vec(v: Vec<PathEl>) -> BezPath {
+    pub fn from_vec(v: Vec<PathEl<T>>) -> BezPath<T> {
         debug_assert!(
             v.is_empty() || matches!(v.first(), Some(PathEl::MoveTo(_))),
-            "BezPath must begin with MoveTo"
+            "BezPath<T> must begin with MoveTo"
         );
         BezPath(v)
     }
 
     /// Removes the last [`PathEl`] from the path and returns it, or `None` if the path is empty.
-    pub fn pop(&mut self) -> Option<PathEl> {
+    pub fn pop(&mut self) -> Option<PathEl<T>> {
         self.0.pop()
     }
 
     /// Push a generic path element onto the path.
-    pub fn push(&mut self, el: PathEl) {
+    pub fn push(&mut self, el: PathEl<T>) {
         self.0.push(el);
         debug_assert!(
             matches!(self.0.first(), Some(PathEl::MoveTo(_))),
-            "BezPath must begin with MoveTo"
+            "BezPath<T> must begin with MoveTo"
         );
     }
 
     /// Push a "move to" element onto the path.
-    pub fn move_to<P: Into<Point>>(&mut self, p: P) {
+    pub fn move_to<P: Into<Point<T>>>(&mut self, p: P) {
         self.push(PathEl::MoveTo(p.into()));
     }
 
@@ -238,7 +245,7 @@ impl BezPath {
     ///
     /// If `line_to` is called immediately after `close_path` then the current
     /// subpath starts at the initial point of the previous subpath.
-    pub fn line_to<P: Into<Point>>(&mut self, p: P) {
+    pub fn line_to<P: Into<Point<T>>>(&mut self, p: P) {
         debug_assert!(!self.0.is_empty(), "uninitialized subpath (missing MoveTo)");
         self.push(PathEl::LineTo(p.into()));
     }
@@ -250,7 +257,7 @@ impl BezPath {
     ///
     /// If `quad_to` is called immediately after `close_path` then the current
     /// subpath starts at the initial point of the previous subpath.
-    pub fn quad_to<P: Into<Point>>(&mut self, p1: P, p2: P) {
+    pub fn quad_to<P: Into<Point<T>>>(&mut self, p1: P, p2: P) {
         debug_assert!(!self.0.is_empty(), "uninitialized subpath (missing MoveTo)");
         self.push(PathEl::QuadTo(p1.into(), p2.into()));
     }
@@ -262,7 +269,7 @@ impl BezPath {
     ///
     /// If `curve_to` is called immediately after `close_path` then the current
     /// subpath starts at the initial point of the previous subpath.
-    pub fn curve_to<P: Into<Point>>(&mut self, p1: P, p2: P, p3: P) {
+    pub fn curve_to<P: Into<Point<T>>>(&mut self, p1: P, p2: P, p3: P) {
         debug_assert!(!self.0.is_empty(), "uninitialized subpath (missing MoveTo)");
         self.push(PathEl::CurveTo(p1.into(), p2.into(), p3.into()));
     }
@@ -278,7 +285,7 @@ impl BezPath {
 
     /// Consumes the `BezPath` and returns a vector of [`PathEl`]s.
     #[inline(always)]
-    pub fn into_elements(self) -> Vec<PathEl> {
+    pub fn into_elements(self) -> Vec<PathEl<T>> {
         self.0
     }
 
@@ -288,24 +295,14 @@ impl BezPath {
     ///
     /// [`into_elements`]: Self::into_elements
     #[inline(always)]
-    pub fn elements(&self) -> &[PathEl] {
+    pub fn elements(&self) -> &[PathEl<T>] {
         &self.0
     }
 
     /// Get the path elements (mut version).
     #[inline(always)]
-    pub fn elements_mut(&mut self) -> &mut [PathEl] {
+    pub fn elements_mut(&mut self) -> &mut [PathEl<T>] {
         &mut self.0
-    }
-
-    /// Returns an iterator over the path's elements.
-    pub fn iter(&self) -> impl Iterator<Item = PathEl> + Clone + '_ {
-        self.0.iter().copied()
-    }
-
-    /// Iterate over the path segments.
-    pub fn segments(&self) -> impl Iterator<Item = PathSeg> + Clone + '_ {
-        segments(self.iter())
     }
 
     /// Shorten the path, keeping the first `len` elements.
@@ -313,6 +310,22 @@ impl BezPath {
         self.0.truncate(len);
     }
 
+    /// Returns `true` if the path contains no segments.
+    pub fn is_empty(&self) -> bool {
+        self.0
+            .iter()
+            .all(|el| matches!(el, PathEl::MoveTo(..) | PathEl::ClosePath))
+    }
+}
+
+impl<T: Copy> BezPath<T> {
+    /// Returns an iterator over the path's elements.
+    pub fn iter(&self) -> impl Iterator<Item = PathEl<T>> + Clone + '_ {
+        self.0.iter().copied()
+    }
+}
+
+impl<T: Copy + PartialEq> BezPath<T> {
     /// Get the segment at the given element index.
     ///
     /// If you need to access all segments, [`segments`] provides a better
@@ -323,7 +336,7 @@ impl BezPath {
     /// index. In effect this means it is *1-indexed*: since no segment ends at
     /// the first element (which is presumed to be a `MoveTo`) `get_seg(0)` will
     /// always return `None`.
-    pub fn get_seg(&self, ix: usize) -> Option<PathSeg> {
+    pub fn get_seg(&self, ix: usize) -> Option<PathSeg<T>> {
         if ix == 0 || ix >= self.0.len() {
             return None;
         }
@@ -347,12 +360,12 @@ impl BezPath {
             PathEl::MoveTo(_) => None,
         }
     }
+}
 
-    /// Returns `true` if the path contains no segments.
-    pub fn is_empty(&self) -> bool {
-        self.0
-            .iter()
-            .all(|el| matches!(el, PathEl::MoveTo(..) | PathEl::ClosePath))
+impl BezPath {
+    /// Iterate over the path segments.
+    pub fn segments(&self) -> impl Iterator<Item = PathSeg> + Clone + '_ {
+        segments(self.iter())
     }
 
     /// Apply an affine transform to the path.
@@ -504,8 +517,8 @@ fn reverse_subpath(start_pt: Point, els: &[PathEl], reversed: &mut BezPath) {
     }
 }
 
-impl FromIterator<PathEl> for BezPath {
-    fn from_iter<T: IntoIterator<Item = PathEl>>(iter: T) -> Self {
+impl<T> FromIterator<PathEl<T>> for BezPath<T> {
+    fn from_iter<I: IntoIterator<Item = PathEl<T>>>(iter: I) -> Self {
         let el_vec: Vec<_> = iter.into_iter().collect();
         BezPath::from_vec(el_vec)
     }
@@ -515,25 +528,25 @@ impl FromIterator<PathEl> for BezPath {
 ///
 /// Note: the semantics are slightly different from simply iterating over the
 /// slice, as it returns `PathEl` items, rather than references.
-impl<'a> IntoIterator for &'a BezPath {
-    type Item = PathEl;
-    type IntoIter = core::iter::Cloned<core::slice::Iter<'a, PathEl>>;
+impl<'a, T: Clone> IntoIterator for &'a BezPath<T> {
+    type Item = PathEl<T>;
+    type IntoIter = core::iter::Cloned<core::slice::Iter<'a, PathEl<T>>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.elements().iter().cloned()
     }
 }
 
-impl IntoIterator for BezPath {
-    type Item = PathEl;
-    type IntoIter = alloc::vec::IntoIter<PathEl>;
+impl<T> IntoIterator for BezPath<T> {
+    type Item = PathEl<T>;
+    type IntoIter = alloc::vec::IntoIter<PathEl<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
     }
 }
 
-impl Extend<PathEl> for BezPath {
+impl<T> Extend<PathEl<T>> for BezPath<T> {
     /// Add the items from the iterator to this path.
     ///
     /// <div class="warning">
@@ -546,7 +559,7 @@ impl Extend<PathEl> for BezPath {
     /// Some shapes have alternatives for this use case, such as [`Arc::append_iter`](crate::Arc::append_iter).
     ///
     /// </div>
-    fn extend<I: IntoIterator<Item = PathEl>>(&mut self, iter: I) {
+    fn extend<I: IntoIterator<Item = PathEl<T>>>(&mut self, iter: I) {
         self.0.extend(iter);
     }
 }
@@ -965,6 +978,8 @@ impl<I: Iterator<Item = PathEl>> Segments<I> {
 }
 
 impl ParamCurve for PathSeg {
+    type Scalar = f64;
+
     fn eval(&self, t: f64) -> Point {
         match *self {
             PathSeg::Line(line) => line.eval(t),
@@ -1017,6 +1032,8 @@ impl ParamCurveArclen for PathSeg {
 }
 
 impl ParamCurveArea for PathSeg {
+    type Scalar = f64;
+
     fn signed_area(&self) -> f64 {
         match *self {
             PathSeg::Line(line) => line.signed_area(),
@@ -1027,6 +1044,8 @@ impl ParamCurveArea for PathSeg {
 }
 
 impl ParamCurveNearest for PathSeg {
+    type Scalar = f64;
+
     fn nearest(&self, p: Point, accuracy: f64) -> Nearest {
         match *self {
             PathSeg::Line(line) => line.nearest(p, accuracy),
@@ -1394,28 +1413,30 @@ fn cubic_bez_coefs(x0: f64, x1: f64, x2: f64, x3: f64) -> (f64, f64, f64, f64) {
     (p0, p1, p2, p3)
 }
 
-impl From<CubicBez> for PathSeg {
+impl<T> From<CubicBez<T>> for PathSeg<T> {
     #[inline(always)]
-    fn from(cubic_bez: CubicBez) -> PathSeg {
+    fn from(cubic_bez: CubicBez<T>) -> PathSeg<T> {
         PathSeg::Cubic(cubic_bez)
     }
 }
 
-impl From<Line> for PathSeg {
+impl<T> From<Line<T>> for PathSeg<T> {
     #[inline(always)]
-    fn from(line: Line) -> PathSeg {
+    fn from(line: Line<T>) -> PathSeg<T> {
         PathSeg::Line(line)
     }
 }
 
-impl From<QuadBez> for PathSeg {
+impl<T> From<QuadBez<T>> for PathSeg<T> {
     #[inline(always)]
-    fn from(quad_bez: QuadBez) -> PathSeg {
+    fn from(quad_bez: QuadBez<T>) -> PathSeg<T> {
         PathSeg::Quad(quad_bez)
     }
 }
 
 impl Shape for BezPath {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = core::iter::Copied<core::slice::Iter<'iter, PathEl>>;
 
     fn path_elements(&self, _tolerance: f64) -> Self::PathElementsIter<'_> {
@@ -1497,6 +1518,8 @@ impl PathEl {
 ///
 /// If the slice starts with `LineTo`, `QuadTo`, or `CurveTo`, it will be treated as a `MoveTo`.
 impl<'a> Shape for &'a [PathEl] {
+    type Scalar = f64;
+
     type PathElementsIter<'iter>
         = core::iter::Copied<core::slice::Iter<'a, PathEl>>
     where
@@ -1540,6 +1563,8 @@ impl<'a> Shape for &'a [PathEl] {
 ///
 /// If the array starts with `LineTo`, `QuadTo`, or `CurveTo`, it will be treated as a `MoveTo`.
 impl<const N: usize> Shape for [PathEl; N] {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = core::iter::Copied<core::slice::Iter<'iter, PathEl>>;
 
     #[inline]
@@ -1582,6 +1607,8 @@ pub struct PathSegIter {
 }
 
 impl Shape for PathSeg {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = PathSegIter;
 
     #[inline(always)]

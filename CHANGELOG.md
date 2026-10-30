@@ -18,6 +18,10 @@ This release has an [MSRV][] of 1.85.
 ## Added
 - `serde` and `schemars` support for `Axis`. ([#591][] by [@waywardmonkeys][])
 
+## Changed
+- `Point`, `Vec2`, `Size`, `Rect`, `Insets`, `RoundedRectRadii`, `Affine`, `TranslateScale`, `Line`, `QuadBez`, `CubicBez`, `PathEl`, `PathSeg`, `BezPath`, `QuadSpline`, `Triangle`, `Circle`, `CircleSegment`, `Arc`, `Ellipse`, `RoundedRect`, `Stroke`, `Dashes` and `Moments` are now generic over their scalar type, with a default of `f64`. Only storage, constructors, conversions and the plain arithmetic operators are generic; all other methods are still implemented for `f64` only. (by [@nicoburns][])
+- `Shape`, `ParamCurve`, `ParamCurveDeriv`, `ParamCurveArea`, `ParamCurveNearest`, `ParamCurveFit` and `ParamCurveMoments` have a new `Scalar` associated type, which is `f64` for every implementation in this crate. (by [@nicoburns][])
+
 ## [0.13.1][] (2026-05-13)
 
 This release has an [MSRV][] of 1.85.
@@ -326,5 +330,7 @@ Note: A changelog was not kept for or before this release
 [0.11.2]: https://github.com/linebender/kurbo/releases/tag/v0.11.2
 [0.11.1]: https://github.com/linebender/kurbo/releases/tag/v0.11.1
 [0.11.0]: https://github.com/linebender/kurbo/releases/tag/v0.11.0
+
+[@nicoburns]: https://github.com/nicoburns
 
 [MSRV]: README.md#minimum-supported-rust-version-msrv

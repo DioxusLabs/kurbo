@@ -90,24 +90,30 @@ use crate::{Rect, Size};
 #[derive(Clone, Copy, Default, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Insets {
+pub struct Insets<T = f64> {
     /// The minimum x coordinate (left edge).
-    pub x0: f64,
+    pub x0: T,
     /// The minimum y coordinate (top edge in y-down spaces).
-    pub y0: f64,
+    pub y0: T,
     /// The maximum x coordinate (right edge).
-    pub x1: f64,
+    pub x1: T,
     /// The maximum y coordinate (bottom edge in y-down spaces).
-    pub y1: f64,
+    pub y1: T,
 }
 
-impl Insets {
-    /// Zeroed insets.
-    pub const ZERO: Insets = Insets::uniform(0.);
+impl<T> Insets<T> {
+    /// New insets. The ordering of the arguments is "left, top, right, bottom",
+    /// assuming a y-down coordinate space.
+    #[inline(always)]
+    pub const fn new(x0: T, y0: T, x1: T, y1: T) -> Insets<T> {
+        Insets { x0, y0, x1, y1 }
+    }
+}
 
+impl<T: Copy> Insets<T> {
     /// New uniform insets.
     #[inline(always)]
-    pub const fn uniform(d: f64) -> Insets {
+    pub const fn uniform(d: T) -> Insets<T> {
         Insets {
             x0: d,
             y0: d,
@@ -118,7 +124,7 @@ impl Insets {
 
     /// New insets with uniform values along each axis.
     #[inline(always)]
-    pub const fn uniform_xy(x: f64, y: f64) -> Insets {
+    pub const fn uniform_xy(x: T, y: T) -> Insets<T> {
         Insets {
             x0: x,
             y0: y,
@@ -126,13 +132,11 @@ impl Insets {
             y1: y,
         }
     }
+}
 
-    /// New insets. The ordering of the arguments is "left, top, right, bottom",
-    /// assuming a y-down coordinate space.
-    #[inline(always)]
-    pub const fn new(x0: f64, y0: f64, x1: f64, y1: f64) -> Insets {
-        Insets { x0, y0, x1, y1 }
-    }
+impl Insets {
+    /// Zeroed insets.
+    pub const ZERO: Insets = Insets::uniform(0.);
 
     /// The total delta on the x-axis represented by these insets.
     ///
@@ -278,19 +282,19 @@ impl Insets {
     }
 }
 
-impl Neg for Insets {
-    type Output = Insets;
+impl<T: Neg<Output = T>> Neg for Insets<T> {
+    type Output = Insets<T>;
 
     #[inline]
-    fn neg(self) -> Insets {
+    fn neg(self) -> Insets<T> {
         Insets::new(-self.x0, -self.y0, -self.x1, -self.y1)
     }
 }
 
-impl Add<Insets> for Insets {
-    type Output = Insets;
+impl<T: Add<Output = T>> Add<Insets<T>> for Insets<T> {
+    type Output = Insets<T>;
 
-    fn add(self, other: Insets) -> Self::Output {
+    fn add(self, other: Insets<T>) -> Self::Output {
         Insets {
             x0: self.x0 + other.x0,
             x1: self.x1 + other.x1,
@@ -300,10 +304,10 @@ impl Add<Insets> for Insets {
     }
 }
 
-impl Sub<Insets> for Insets {
-    type Output = Insets;
+impl<T: Sub<Output = T>> Sub<Insets<T>> for Insets<T> {
+    type Output = Insets<T>;
 
-    fn sub(self, other: Insets) -> Self::Output {
+    fn sub(self, other: Insets<T>) -> Self::Output {
         Insets {
             x0: self.x0 - other.x0,
             x1: self.x1 - other.x1,
@@ -347,10 +351,10 @@ impl Sub<Rect> for Insets {
     }
 }
 
-impl Mul<f64> for Insets {
-    type Output = Insets;
+impl<T: Mul<Output = T> + Copy> Mul<T> for Insets<T> {
+    type Output = Insets<T>;
 
-    fn mul(self, rhs: f64) -> Self::Output {
+    fn mul(self, rhs: T) -> Self::Output {
         Self {
             x0: self.x0 * rhs,
             y0: self.y0 * rhs,
@@ -360,10 +364,10 @@ impl Mul<f64> for Insets {
     }
 }
 
-impl Div<f64> for Insets {
-    type Output = Insets;
+impl<T: Div<Output = T> + Copy> Div<T> for Insets<T> {
+    type Output = Insets<T>;
 
-    fn div(self, rhs: f64) -> Self::Output {
+    fn div(self, rhs: T) -> Self::Output {
         Self {
             x0: self.x0 / rhs,
             y0: self.y0 / rhs,
@@ -382,23 +386,23 @@ impl Sub<Insets> for Rect {
     }
 }
 
-impl From<f64> for Insets {
+impl<T: Copy> From<T> for Insets<T> {
     #[inline(always)]
-    fn from(src: f64) -> Insets {
+    fn from(src: T) -> Insets<T> {
         Insets::uniform(src)
     }
 }
 
-impl From<(f64, f64)> for Insets {
+impl<T: Copy> From<(T, T)> for Insets<T> {
     #[inline(always)]
-    fn from(src: (f64, f64)) -> Insets {
+    fn from(src: (T, T)) -> Insets<T> {
         Insets::uniform_xy(src.0, src.1)
     }
 }
 
-impl From<(f64, f64, f64, f64)> for Insets {
+impl<T> From<(T, T, T, T)> for Insets<T> {
     #[inline(always)]
-    fn from(src: (f64, f64, f64, f64)) -> Insets {
+    fn from(src: (T, T, T, T)) -> Insets<T> {
         Insets::new(src.0, src.1, src.2, src.3)
     }
 }

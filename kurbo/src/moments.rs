@@ -13,23 +13,23 @@ use crate::common::FloatFuncs;
 /// integrals of a function over a closed curve to the integrals of its
 /// partial derivatives over the region enclosed by the curve.
 #[derive(Debug, Default, Copy, Clone)]
-pub struct Moments {
+pub struct Moments<T = f64> {
     /// The first moment of area about the x-axis.
-    pub moment_x: f64,
+    pub moment_x: T,
     /// The first moment of area about the y-axis.
-    pub moment_y: f64,
+    pub moment_y: T,
     /// The second moment of area about the x-axis (also known as the
     /// area moment of inertia about the x-axis).
-    pub moment_xx: f64,
+    pub moment_xx: T,
     /// The second moment of area about the xy-axis (also known as the
     /// product of inertia).
-    pub moment_xy: f64,
+    pub moment_xy: T,
     /// The second moment of area about the y-axis (also known as the
     /// area moment of inertia about the y-axis).
-    pub moment_yy: f64,
+    pub moment_yy: T,
 }
 
-impl core::ops::Add<Self> for Moments {
+impl<T: core::ops::Add<Output = T>> core::ops::Add<Self> for Moments<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -521,6 +521,11 @@ impl Moments {
 
 /// A trait for types that can provide moment integrals for a path using Green's theorem.
 pub trait ParamCurveMoments<'a> {
+    /// The scalar type used for the moments.
+    ///
+    /// Currently every implementation in this crate uses `f64`.
+    type Scalar;
+
     /// Returns the moment integrals for the path using Green's theorem.
     fn moments(&'a self) -> Moments;
 }
@@ -529,6 +534,8 @@ impl<'a, T: 'a> ParamCurveMoments<'a> for T
 where
     &'a T: IntoIterator<Item = PathEl>,
 {
+    type Scalar = f64;
+
     fn moments(&'a self) -> Moments {
         let mut moments = Moments::default();
         let mut start_pt: Point = Point::ZERO;

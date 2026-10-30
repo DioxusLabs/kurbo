@@ -3,7 +3,7 @@
 
 //! Affine transforms.
 
-use core::ops::{Mul, MulAssign};
+use core::ops::{Add, Mul, MulAssign};
 
 use crate::{Point, Rect, Vec2};
 
@@ -14,19 +14,9 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Affine([f64; 6]);
+pub struct Affine<T = f64>([T; 6]);
 
-impl Affine {
-    /// The identity transform.
-    pub const IDENTITY: Affine = Affine::scale(1.0);
-
-    /// A transform that is flipped on the y-axis. Useful for converting between
-    /// y-up and y-down spaces.
-    pub const FLIP_Y: Affine = Affine::new([1.0, 0., 0., -1.0, 0., 0.]);
-
-    /// A transform that is flipped on the x-axis.
-    pub const FLIP_X: Affine = Affine::new([-1.0, 0., 0., 1.0, 0., 0.]);
-
+impl<T> Affine<T> {
     /// Construct an affine transform from coefficients.
     ///
     /// If the coefficients are `(a, b, c, d, e, f)`, then the resulting
@@ -45,9 +35,49 @@ impl Affine {
     /// idea is that `(A * B) * v == A * (B * v)`, where `*` is the
     /// [`Mul`] trait.
     #[inline(always)]
-    pub const fn new(c: [f64; 6]) -> Affine {
+    pub const fn new(c: [T; 6]) -> Affine<T> {
         Affine(c)
     }
+}
+
+impl<T: Copy> Affine<T> {
+    /// Get the coefficients of the transform.
+    #[inline(always)]
+    pub const fn as_coeffs(self) -> [T; 6] {
+        self.0
+    }
+
+    /// Returns the translation part of this affine map (`(self.0[4], self.0[5])`).
+    #[inline(always)]
+    pub const fn translation(self) -> Vec2<T> {
+        Vec2 {
+            x: self.0[4],
+            y: self.0[5],
+        }
+    }
+
+    /// Replaces the translation portion of this affine map
+    ///
+    /// The translation can be seen as being applied after the linear part of the map.
+    #[must_use]
+    #[inline(always)]
+    pub const fn with_translation(mut self, trans: Vec2<T>) -> Affine<T> {
+        self.0[4] = trans.x;
+        self.0[5] = trans.y;
+        self
+    }
+}
+
+impl Affine {
+    /// The identity transform.
+    pub const IDENTITY: Affine = Affine::scale(1.0);
+
+    /// A transform that is flipped on the y-axis. Useful for converting between
+    /// y-up and y-down spaces.
+    pub const FLIP_Y: Affine = Affine::new([1.0, 0., 0., -1.0, 0., 0.]);
+
+    /// A transform that is flipped on the x-axis.
+    pub const FLIP_X: Affine = Affine::new([-1.0, 0., 0., 1.0, 0., 0.]);
 
     /// An affine transform representing uniform scaling.
     #[inline(always)]
@@ -345,12 +375,6 @@ impl Affine {
         Affine([rect.width(), 0., 0., rect.height(), rect.x0, rect.y0])
     }
 
-    /// Get the coefficients of the transform.
-    #[inline(always)]
-    pub const fn as_coeffs(self) -> [f64; 6] {
-        self.0
-    }
-
     /// Compute the determinant of this transform.
     ///
     /// # Geometric interpretation
@@ -557,26 +581,6 @@ impl Affine {
             angle,
         )
     }
-
-    /// Returns the translation part of this affine map (`(self.0[4], self.0[5])`).
-    #[inline(always)]
-    pub const fn translation(self) -> Vec2 {
-        Vec2 {
-            x: self.0[4],
-            y: self.0[5],
-        }
-    }
-
-    /// Replaces the translation portion of this affine map
-    ///
-    /// The translation can be seen as being applied after the linear part of the map.
-    #[must_use]
-    #[inline(always)]
-    pub const fn with_translation(mut self, trans: Vec2) -> Affine {
-        self.0[4] = trans.x;
-        self.0[5] = trans.y;
-        self
-    }
 }
 
 impl Default for Affine {
@@ -586,11 +590,11 @@ impl Default for Affine {
     }
 }
 
-impl Mul<Point> for Affine {
-    type Output = Point;
+impl<T: Mul<Output = T> + Add<Output = T> + Copy> Mul<Point<T>> for Affine<T> {
+    type Output = Point<T>;
 
     #[inline]
-    fn mul(self, other: Point) -> Point {
+    fn mul(self, other: Point<T>) -> Point<T> {
         Point::new(
             self.0[0] * other.x + self.0[2] * other.y + self.0[4],
             self.0[1] * other.x + self.0[3] * other.y + self.0[5],
@@ -598,11 +602,11 @@ impl Mul<Point> for Affine {
     }
 }
 
-impl Mul for Affine {
-    type Output = Affine;
+impl<T: Mul<Output = T> + Add<Output = T> + Copy> Mul for Affine<T> {
+    type Output = Affine<T>;
 
     #[inline]
-    fn mul(self, other: Affine) -> Affine {
+    fn mul(self, other: Affine<T>) -> Affine<T> {
         Affine([
             self.0[0] * other.0[0] + self.0[2] * other.0[1],
             self.0[1] * other.0[0] + self.0[3] * other.0[1],
@@ -614,9 +618,9 @@ impl Mul for Affine {
     }
 }
 
-impl MulAssign for Affine {
+impl<T: Mul<Output = T> + Add<Output = T> + Copy> MulAssign for Affine<T> {
     #[inline]
-    fn mul_assign(&mut self, other: Affine) {
+    fn mul_assign(&mut self, other: Affine<T>) {
         *self = self.mul(other);
     }
 }
@@ -639,9 +643,9 @@ impl Mul<Affine> for f64 {
 
 // Conversions to and from mint
 #[cfg(feature = "mint")]
-impl From<Affine> for mint::ColumnMatrix2x3<f64> {
+impl<T: Copy> From<Affine<T>> for mint::ColumnMatrix2x3<T> {
     #[inline(always)]
-    fn from(a: Affine) -> mint::ColumnMatrix2x3<f64> {
+    fn from(a: Affine<T>) -> mint::ColumnMatrix2x3<T> {
         mint::ColumnMatrix2x3 {
             x: mint::Vector2 {
                 x: a.0[0],
@@ -660,9 +664,9 @@ impl From<Affine> for mint::ColumnMatrix2x3<f64> {
 }
 
 #[cfg(feature = "mint")]
-impl From<mint::ColumnMatrix2x3<f64>> for Affine {
+impl<T> From<mint::ColumnMatrix2x3<T>> for Affine<T> {
     #[inline(always)]
-    fn from(m: mint::ColumnMatrix2x3<f64>) -> Affine {
+    fn from(m: mint::ColumnMatrix2x3<T>) -> Affine<T> {
         Affine([m.x.x, m.x.y, m.y.x, m.y.y, m.z.x, m.z.y])
     }
 }

@@ -30,11 +30,11 @@ const MAX_SPLINE_SPLIT: usize = 100;
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[allow(missing_docs)]
-pub struct CubicBez {
-    pub p0: Point,
-    pub p1: Point,
-    pub p2: Point,
-    pub p3: Point,
+pub struct CubicBez<T = f64> {
+    pub p0: Point<T>,
+    pub p1: Point<T>,
+    pub p2: Point<T>,
+    pub p3: Point<T>,
 }
 
 /// An iterator which produces quadratic Bézier segments.
@@ -53,10 +53,10 @@ pub enum CuspType {
     DoubleInflection,
 }
 
-impl CubicBez {
+impl<T> CubicBez<T> {
     /// Create a new cubic Bézier segment.
     #[inline(always)]
-    pub fn new<P: Into<Point>>(p0: P, p1: P, p2: P, p3: P) -> CubicBez {
+    pub fn new<P: Into<Point<T>>>(p0: P, p1: P, p2: P, p3: P) -> CubicBez<T> {
         CubicBez {
             p0: p0.into(),
             p1: p1.into(),
@@ -64,7 +64,9 @@ impl CubicBez {
             p3: p3.into(),
         }
     }
+}
 
+impl CubicBez {
     /// Convert to quadratic Béziers.
     ///
     /// The iterator returns the start and end parameter in the cubic of each quadratic
@@ -501,6 +503,8 @@ pub struct CubicBezIter {
 }
 
 impl Shape for CubicBez {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = CubicBezIter;
 
     #[inline]
@@ -546,6 +550,8 @@ impl Iterator for CubicBezIter {
 }
 
 impl ParamCurve for CubicBez {
+    type Scalar = f64;
+
     #[inline]
     fn eval(&self, t: f64) -> Point {
         let mt = 1.0 - t;
@@ -601,6 +607,8 @@ impl ParamCurve for CubicBez {
 }
 
 impl ParamCurveDeriv for CubicBez {
+    type Scalar = f64;
+
     type DerivResult = QuadBez;
 
     #[inline]
@@ -676,6 +684,8 @@ impl ParamCurveArclen for CubicBez {
 }
 
 impl ParamCurveArea for CubicBez {
+    type Scalar = f64;
+
     #[inline]
     fn signed_area(&self) -> f64 {
         (self.p0.x * (6.0 * self.p1.y + 3.0 * self.p2.y + self.p3.y)
@@ -688,6 +698,8 @@ impl ParamCurveArea for CubicBez {
 }
 
 impl ParamCurveNearest for CubicBez {
+    type Scalar = f64;
+
     /// Find the nearest point using a quintic solver.
     ///
     /// The polynomial `|self - p|^2` has degree 6, so we find its critical

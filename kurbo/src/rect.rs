@@ -17,26 +17,48 @@ use crate::common::FloatFuncs;
 #[derive(Clone, Copy, Default, PartialEq)]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Rect {
+pub struct Rect<T = f64> {
     /// The minimum x coordinate (left edge).
-    pub x0: f64,
+    pub x0: T,
     /// The minimum y coordinate (top edge in y-down spaces).
-    pub y0: f64,
+    pub y0: T,
     /// The maximum x coordinate (right edge).
-    pub x1: f64,
+    pub x1: T,
     /// The maximum y coordinate (bottom edge in y-down spaces).
-    pub y1: f64,
+    pub y1: T,
+}
+
+impl<T> Rect<T> {
+    /// A new rectangle from minimum and maximum coordinates.
+    #[inline(always)]
+    pub const fn new(x0: T, y0: T, x1: T, y1: T) -> Rect<T> {
+        Rect { x0, y0, x1, y1 }
+    }
+
+    /// Get a mutable reference to the members matching the given axis.
+    #[inline]
+    pub const fn get_coords_mut(&mut self, axis: Axis) -> (&mut T, &mut T) {
+        match axis {
+            Axis::Horizontal => (&mut self.x0, &mut self.x1),
+            Axis::Vertical => (&mut self.y0, &mut self.y1),
+        }
+    }
+}
+
+impl<T: Copy> Rect<T> {
+    /// Get the members matching the given axis.
+    #[inline]
+    pub const fn get_coords(self, axis: Axis) -> (T, T) {
+        match axis {
+            Axis::Horizontal => (self.x0, self.x1),
+            Axis::Vertical => (self.y0, self.y1),
+        }
+    }
 }
 
 impl Rect {
     /// The empty rectangle at the origin.
     pub const ZERO: Rect = Rect::new(0., 0., 0., 0.);
-
-    /// A new rectangle from minimum and maximum coordinates.
-    #[inline(always)]
-    pub const fn new(x0: f64, y0: f64, x1: f64, y1: f64) -> Rect {
-        Rect { x0, y0, x1, y1 }
-    }
 
     /// A new rectangle from two points.
     ///
@@ -641,24 +663,6 @@ impl Rect {
         self.x0.is_nan() || self.y0.is_nan() || self.x1.is_nan() || self.y1.is_nan()
     }
 
-    /// Get the members matching the given axis.
-    #[inline]
-    pub const fn get_coords(self, axis: Axis) -> (f64, f64) {
-        match axis {
-            Axis::Horizontal => (self.x0, self.x1),
-            Axis::Vertical => (self.y0, self.y1),
-        }
-    }
-
-    /// Get a mutable reference to the members matching the given axis.
-    #[inline]
-    pub const fn get_coords_mut(&mut self, axis: Axis) -> (&mut f64, &mut f64) {
-        match axis {
-            Axis::Horizontal => (&mut self.x0, &mut self.x1),
-            Axis::Vertical => (&mut self.y0, &mut self.y1),
-        }
-    }
-
     /// Set the members matching the given axis to the given values.
     #[inline]
     pub const fn set_coords(&mut self, axis: Axis, v0: f64, v1: f64) {
@@ -682,29 +686,29 @@ impl From<(Point, Size)> for Rect {
     }
 }
 
-impl Add<Vec2> for Rect {
-    type Output = Rect;
+impl<T: Add<Output = T> + Copy> Add<Vec2<T>> for Rect<T> {
+    type Output = Rect<T>;
 
     #[inline]
-    fn add(self, v: Vec2) -> Rect {
+    fn add(self, v: Vec2<T>) -> Rect<T> {
         Rect::new(self.x0 + v.x, self.y0 + v.y, self.x1 + v.x, self.y1 + v.y)
     }
 }
 
-impl Sub<Vec2> for Rect {
-    type Output = Rect;
+impl<T: Sub<Output = T> + Copy> Sub<Vec2<T>> for Rect<T> {
+    type Output = Rect<T>;
 
     #[inline]
-    fn sub(self, v: Vec2) -> Rect {
+    fn sub(self, v: Vec2<T>) -> Rect<T> {
         Rect::new(self.x0 - v.x, self.y0 - v.y, self.x1 - v.x, self.y1 - v.y)
     }
 }
 
-impl Sub for Rect {
-    type Output = Insets;
+impl<T: Sub<Output = T>> Sub for Rect<T> {
+    type Output = Insets<T>;
 
     #[inline]
-    fn sub(self, other: Rect) -> Insets {
+    fn sub(self, other: Rect<T>) -> Insets<T> {
         let x0 = other.x0 - self.x0;
         let y0 = other.y0 - self.y0;
         let x1 = self.x1 - other.x1;
@@ -720,6 +724,8 @@ pub struct RectPathIter {
 }
 
 impl Shape for Rect {
+    type Scalar = f64;
+
     type PathElementsIter<'iter> = RectPathIter;
 
     fn path_elements(&self, _tolerance: f64) -> RectPathIter {
@@ -791,14 +797,14 @@ impl Iterator for RectPathIter {
     }
 }
 
-impl fmt::Debug for Rect {
+impl<T: fmt::Debug + Sub<Output = T> + Copy> fmt::Debug for Rect<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if f.alternate() {
             write!(
                 f,
                 "Rect {{ origin: {:?}, size: {:?} }}",
-                self.origin(),
-                self.size()
+                Point::new(self.x0, self.y0),
+                Size::new(self.x1 - self.x0, self.y1 - self.y0)
             )
         } else {
             write!(

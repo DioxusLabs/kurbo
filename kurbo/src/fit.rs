@@ -49,6 +49,11 @@ use crate::common::FloatFuncs;
 /// [`eval`]: crate::ParamCurve::eval
 /// [`sample_pt_deriv`]: ParamCurveFit::sample_pt_deriv
 pub trait ParamCurveFit {
+    /// The scalar type used for parameters and coordinates.
+    ///
+    /// Currently every implementation in this crate uses `f64`.
+    type Scalar;
+
     /// Evaluate the curve and its tangent at parameter `t`.
     ///
     /// For a regular curve (one not containing a cusp or corner), the
